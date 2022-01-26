@@ -21,6 +21,10 @@ struct Home: View {
     
     @State var animations: [Bool] = Array(repeating: false, count: 10)
     
+    @Namespace var animation
+    
+    @State var selectedColor: Color = Color("Rosa")
+    
     var body: some View {
         
         VStack {
@@ -89,41 +93,50 @@ struct Home: View {
                         .frame(height: animations[2] ? nil : 0)
                         .vBottom()
                     
-//                    ZStack{
-//                        ForEach(colors){ColorGrid in
-//                            RoundedRectangle(cornerRadius: 10)
-//                                .fill(ColorGrid.color)
-//                                .frame(width: 150, height: animations[3] ? 60 : 150)
-//                        }
-//                    }
-//                    .overlay(
-//                        ForEach(colors){ColorGrid in
-//                            RoundedRectangle(cornerRadius: 10)
-//                                .fill(ColorGrid.color)
-//                                .frame(width: 150, height: animations[3] ? 60 : 150)
-//                                .opacity(animations[3] ? 0 : 1)
-//                        }
-//                    )
-//                    .scaleEffect(animations[3] ? 1 : 2.3)
+                    ZStack{
+                        ForEach(colors){colorGrid in
+                            
+                            if !colorGrid.removeFromView {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(colorGrid.color)
+                                    .frame(width: 150, height: animations[3] ? 60 : 150)
+                                    .matchedGeometryEffect(id: colorGrid.id, in: animation)
+                                    .rotationEffect(.init(degrees: colorGrid.rotateCard ? 180 : 0))
+                            }
+                            
+                            
+                        }
+                    }
+                    .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color("BG"))
+                                .frame(width: 150, height: animations[3] ? 60 : 150)
+                                .opacity(animations[3] ? 0 : 1)
+                    )
+                    .scaleEffect(animations[3] ? 1 : 2.3)
                 }
+                .hCenter()
+                .vCenter()
+
+                
                 ScrollView(.vertical, showsIndicators: false) {
                     
                     let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 2)
                     
                     LazyVGrid(columns: columns, spacing: 15){
                         
-                        ForEach(colors){ColorGrid in
+                        ForEach(colors){colorGrid in
                             
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(ColorGrid.color)
-                                .frame(width: 150, height: animations[3] ? 60 : 150)
-                                .opacity(animations[3] ? 0 : 1)
+                            GridCardView(colorGrid: colorGrid)
+                            
                         }
                     }
+                    .padding(.top, 10)
                 }
+                .padding(.top, 20)
+                .zIndex(1)
+                .cornerRadius(40)
             }
-            
-           
         }
         .vTop()
         .hCenter()
@@ -131,6 +144,54 @@ struct Home: View {
         .background(Color("BG"))
         .preferredColorScheme(.dark)
         .onAppear(perform: animateScreen)
+    }
+    
+    @ViewBuilder
+    func GridCardView(colorGrid: ColorGrid)->some View {
+        
+        VStack {
+            if colorGrid.addToGrid{
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(colorGrid.color)
+                    .frame(width: 150, height: 60)
+                    .matchedGeometryEffect(id: colorGrid.id, in: animation)
+//                    .opacity(animations[3] ? 0 : 1)
+                    .onAppear {
+                        if let index = colors.firstIndex(where: { color in
+                            return color.id == colorGrid.id
+                        }){
+                            withAnimation {
+                                colors[index].showText = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) {
+                                withAnimation {
+                                    colors[index].removeFromView = true
+                                }
+                            }
+                        }
+                    }
+                    .onTapGesture {
+                        withAnimation {
+                            selectedColor = colorGrid.color
+                        }
+                    }
+            
+                    
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(.clear)
+                    .frame(width: 150, height: 60)
+            }
+            
+            Text(colorGrid.hexValue)
+                .font(.caption)
+                .fontWeight(.light)
+                .foregroundColor(.white)
+                .hLeading()
+                .padding([.horizontal,.top])
+                .opacity(colorGrid.showText ? 1 : 0)
+        }
+        
     }
     
     func animateScreen(){
@@ -158,8 +219,15 @@ struct Home: View {
         for index in colors.indices {
             let delay: Double = (0.9 + (Double(index) * 0.1))
             
+            let backIndex = ((colors.count - 1) - index)
+            
             withAnimation(.easeInOut.delay(delay)){
-                colors[index].rotateCard = true
+                colors[backIndex].rotateCard = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation {
+                    colors[backIndex].addToGrid = true
+                }
             }
         }
     }
@@ -169,7 +237,7 @@ struct Home: View {
     func CreditCard()->some View{
         ZStack {
             RoundedRectangle(cornerRadius: 15)
-                .fill(Color("Rosa"))
+                .fill(selectedColor)
             
             VStack{
                 HStack{

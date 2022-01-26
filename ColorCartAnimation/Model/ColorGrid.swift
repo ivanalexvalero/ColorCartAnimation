@@ -12,7 +12,7 @@ struct ColorGrid: Identifiable {
     var hexValue: String
     var color: Color
     var rotateCard: Bool = false
-    var addRoGrid: Bool = false
+    var addToGrid: Bool = false
     var showText: Bool = false
-    var remoteFromView: Bool = false
+    var removeFromView: Bool = false
 }
